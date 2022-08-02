@@ -7,12 +7,17 @@ import {
 } from 'discord.js'
 import { joinVoiceChannel, createAudioPlayer, createAudioResource } from '@discordjs/voice'
 import ytdl from 'ytdl-core'
+import yts from 'yt-search'
 
 export const data = new SlashCommandBuilder()
     .setName('play')
     .setDescription('Проиграть музыку в текущем голосовом канале')
     .addStringOption(option =>
-        option.setName('url').setDescription('Ссылка на youtube').setRequired(true))
+        option.setName('url').setDescription('Ссылка на youtube'))
+    .addStringOption(option =>
+        option.setName('track').setDescription('Название трека'))
+    .addStringOption(option =>
+        option.setName('artist').setDescription('Исполнитель'))
 
 export const execute = async interaction => {
 
@@ -21,8 +26,21 @@ export const execute = async interaction => {
         return interaction.reply({content: 'Подключитесь к голосовому каналу', ephemeral: true})
     }
 
-    const url = interaction.options.getString('url').trim()
-    if (!ytdl.validateURL(url)) {
+    let url = interaction.options.getString('url')
+    const track = interaction.options.getString('track')
+    const artist = interaction.options.getString('artist')
+
+    if (!url && !track) {
+        return interaction.reply({content: 'Чё включать-то?', ephemeral: true})
+    }
+
+    if (!url) {
+        const searchResult = await yts(track + (artist ? ' ' + artist: ''))
+        if (!searchResult.videos.length) {
+            return interaction.reply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
+        }
+        url = searchResult.videos[0].url
+    } else if (!ytdl.validateURL(url)) {
         return interaction.reply({content: 'Некорректный url', ephemeral: true})
     }
 
@@ -46,7 +64,7 @@ export const execute = async interaction => {
                 .setStyle(ButtonStyle.Secondary)
         )
     await interaction.reply({
-        content: `Пользователь ${interaction.user.username} включил чё-то`,
+        content: `Пользователь ${interaction.user.username} включил ${url}`,
         components: [row]
     })
 
