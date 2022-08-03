@@ -44,7 +44,15 @@ export const execute = async interaction => {
         return interaction.reply({content: 'Некорректный url', ephemeral: true})
     }
 
-    const buffer = ytdl(url, {filter: 'audioonly'})
+    const buffer = ytdl(url, {
+        filter: 'audioonly',
+        fmt: 'mp3',
+        highWaterMark: 1 << 62,
+        liveBuffer: 1 << 62,
+        dlChunkSize: 0,
+        bitrate: 128,
+        quality: 'lowestaudio'
+   })
 
     const audio = createAudioResource(buffer)
     const audioPlayer = createAudioPlayer()
