@@ -3,28 +3,21 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ComponentType
+    ComponentType,
+    EmbedBuilder
 } from 'discord.js'
-import {
-    joinVoiceChannel,
-    createAudioPlayer,
-    createAudioResource
-} from '@discordjs/voice'
-import ytdl from 'ytdl-core'
 import yts from 'yt-search'
-
-import ytu from '../yt-url.js'
-import Playlist from '../playlist.js'
+import ytu from '../helpers/yt-url.js'
+import Player from '../modules/player.js'
+import Playlist from '../modules/playlist.js'
 
 export const data = new SlashCommandBuilder()
     .setName('play')
     .setDescription('Проиграть музыку в текущем голосовом канале')
     .addStringOption(option =>
-        option.setName('url').setDescription('Ссылка на youtube'))
+        option.setName('url').setDescription('Youtube видео или плейлист'))
     .addStringOption(option =>
-        option.setName('track').setDescription('Название трека'))
-    .addStringOption(option =>
-        option.setName('artist').setDescription('Исполнитель'))
+        option.setName('search').setDescription('Поисковый запрос'))
 
 export const execute = async interaction => {
 
@@ -34,102 +27,95 @@ export const execute = async interaction => {
     }
 
     let url = interaction.options.getString('url')
-    const track = interaction.options.getString('track')
-    const artist = interaction.options.getString('artist')
+    const query = interaction.options.getString('search')
+    let videoInfo = null
+    let playlistInfo = null
 
-    let isPlaylist = false
-    let ytPlaylist = null
-
-    if (!url && !track) {
+    if (!url && !query) {
         return interaction.reply({content: 'Чё включать-то?', ephemeral: true})
-    } else if (url) {
+    }
+
+    if (!interaction.client.player) {
+        interaction.client.player = new Player()
+    }
+
+    const { player } = interaction.client
+
+    if (!player.voiceConnection) {
+        player.connectToChannel(voiceChannel)
+    }
+
+    if (url) {
+        /// возможно это стоит сделать частью плеера,
+        /// если будет очередь, то он сам должен обрабатывать url
         const linkType = ytu.checkLinkType(url)
         if (!linkType) {
             return interaction.reply({content: 'Некорректный url', ephemeral: true})
         }
-        if (linkType === 'playlist' || linkType === 'videoFromPlaylist') {
-            isPlaylist = true
+        if (linkType === 'video') {
+            player.playTrack(url)
+        } else {
             const listId = ytu.getPlaylistId(url)
-            const playlistInfo = await yts({listId})
-            ytPlaylist = new Playlist(playlistInfo)
+            playlistInfo = await yts({listId})
+            const playlist = new Playlist(playlistInfo)
             if (linkType === 'videoFromPlaylist') {
-                ytPlaylist.setCurrent(ytu.getVideoId(url))
+                playlist.setCurrent(ytu.getVideoId(url))
             }
+            player.playPlaylist(playlist)
         }
+        ///
     } else {
-        const searchResult = await yts(track + (artist ? ' ' + artist: ''))
+        const searchResult = await yts(query)
         if (!searchResult.videos.length) {
             return interaction.reply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
         }
-        url = searchResult.videos[0].url
+        videoInfo = searchResult.videos[0]
+        url = videoInfo.url
+        player.playTrack(url)
     }
 
-    const audioPlayer = createAudioPlayer()
-    const voiceConnection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: voiceChannel.guild.id,
-        adapterCreator: voiceChannel.guild.voiceAdapterCreator
-    })
-    voiceConnection.subscribe(audioPlayer)
+    if (!videoInfo) {
+        videoInfo = await yts({videoId: ytu.getVideoId(url)})
+    }
 
-    if (!isPlaylist) {
+    const embeds = [
+        new EmbedBuilder()
+            .setTitle(videoInfo.title)
+            .setColor('#FF0000')
+            .setImage(videoInfo.thumbnail)
+            .setURL(url)
+    ]
 
-        const buffer = ytdl(url, {
-            filter: 'audioonly',
-            fmt: 'mp3',
-            highWaterMark: 1 << 62,
-            liveBuffer: 1 << 62,
-            dlChunkSize: 0,
-            bitrate: 128,
-            quality: 'lowestaudio'
-       })
-       const audio = createAudioResource(buffer)
-       audioPlayer.play(audio)
-
-    } else {
-
-        const startNewSong = url => {
-            const buffer = ytdl(url, {
-                filter: 'audioonly',
-                fmt: 'mp3',
-                highWaterMark: 1 << 62,
-                liveBuffer: 1 << 62,
-                dlChunkSize: 0,
-                bitrate: 128,
-                quality: 'lowestaudio'
-           })
-           const audio = createAudioResource(buffer)
-           audioPlayer.play(audio)
-        }
-
-        startNewSong(ytPlaylist.next())
-
-        audioPlayer.on('stateChange', (oldState, newState) => {
-            if (newState.status === 'idle') {
-                startNewSong(ytPlaylist.next())
-            }
-       })
-
+    if (player.state === 'playing-playlist') {
+        embeds.push(
+            new EmbedBuilder()
+                .setTitle(playlistInfo.title)
+                .setDescription('Плейлист')
+                .setColor('#202225')
+                .setThumbnail(playlistInfo.thumbnail)
+                .setURL(playlistInfo.url)
+        )
     }
 
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId('stop-play')
-                .setLabel('Выключите этот ужас')
+                .setCustomId('play-dora')
+                .setLabel('Включить дору-дуру')
                 .setStyle(ButtonStyle.Secondary)
         )
+
     await interaction.reply({
-        content: `Пользователь ${interaction.user.username} включил ${isPlaylist ? 'плейлист: ' : ''}${url}`,
+        content: `Пользователь ${interaction.user.username} включил:`,
+        embeds,
         components: [row]
     })
 
     const message = await interaction.fetchReply()
     message.awaitMessageComponent({componentType: ComponentType.Button})
         .then(interaction => {
-            voiceConnection.destroy()
-            audioPlayer.stop()
-            interaction.update({content: 'Воспроизведение остановлено', components: []})
+            player.playTrack('https://youtu.be/WNadEfGnV04')
+            interaction.update({content: 'Ладно', embeds: [], components: []})
         })
         .catch(err => console.error(err))
 }
