@@ -36,7 +36,7 @@ export const execute = async interaction => {
 
     const { player } = interaction.client
 
-    if (!player.voiceConnection) {
+    if (player.state === 'disconnected') {
         player.connectToChannel(voiceChannel)
     }
 
