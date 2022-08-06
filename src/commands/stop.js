@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js'
 
 export const data = new SlashCommandBuilder()
     .setName('stop')
-    .setDescription('Выключить музыку')
+    .setDescription('Выключить этот ужас')
 
 export const execute = async interaction => {
     if (interaction.client.player) {

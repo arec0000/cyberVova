@@ -3,13 +3,10 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ComponentType,
-    EmbedBuilder
+    ComponentType
 } from 'discord.js'
 import yts from 'yt-search'
-import ytu from '../helpers/yt-url.js'
-import Player from '../modules/player.js'
-import Playlist from '../modules/playlist.js'
+import Player from '../modules/music/player.js'
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -26,10 +23,8 @@ export const execute = async interaction => {
         return interaction.reply({content: 'Подключитесь к голосовому каналу', ephemeral: true})
     }
 
-    let url = interaction.options.getString('url')
+    const url = interaction.options.getString('url')
     const query = interaction.options.getString('search')
-
-    let linkType = null
 
     if (!url && !query) {
         return interaction.reply({content: 'Чё включать-то?', ephemeral: true})
@@ -46,46 +41,33 @@ export const execute = async interaction => {
     }
 
     if (url) {
-        /// возможно это стоит сделать частью плеера,
-        /// если будет очередь, то он сам должен обрабатывать url
-        linkType = ytu.checkLinkType(url)
-        if (!linkType) {
+        const response = await player.defineTypeAndPlay(url)
+        if (response === 'incorrectUrl') {
             return interaction.reply({content: 'Некорректный url', ephemeral: true})
         }
-        if (linkType === 'video') {
-            player.playTrack(url)
-        } else {
-            const listId = ytu.getPlaylistId(url)
-            const playlistInfo = await yts({listId})
-            const playlist = new Playlist(playlistInfo)
-            if (linkType === 'videoFromPlaylist') {
-                playlist.setCurrent(ytu.getVideoId(url))
-            }
-            player.playPlaylist(playlist)
-        }
-        ///
     } else {
         const searchResult = await yts(query)
         if (!searchResult.videos.length) {
             return interaction.reply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
         }
-        url = searchResult.videos[0]
-        player.playTrack(url)
+        player.playTrack(searchResult.videos[0].url)
     }
 
-    const embedUrl = `[](${url})`
-    const secondaryEmbedUrl = linkType === 'videoFromPlaylist' ? `[](${ytu.getPlaylistUrl(url)})` : ''
+    const trackEmbedUrl = `[](${player.currentTrack.url})`
+
+    const playlistEmbedUrl = player.currentTrack.playlist?.type === 'youtube'
+        ? `[](${player.currentTrack.playlist.youtube.url})` : ''
 
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId('play-dora')
                 .setLabel('Включите лучше дору')
-                .setStyle(ButtonStyle.Secondary)
+                .setStyle(ButtonStyle.Danger)
         )
 
     await interaction.reply({
-        content: `Пользователь ${interaction.user.username} включил:${embedUrl} ${secondaryEmbedUrl}`,
+        content: `Пользователь ${interaction.user.username} включил:${trackEmbedUrl} ${playlistEmbedUrl}`,
         components: [row]
     })
 
