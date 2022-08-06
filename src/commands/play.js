@@ -28,8 +28,8 @@ export const execute = async interaction => {
 
     let url = interaction.options.getString('url')
     const query = interaction.options.getString('search')
-    let videoInfo = null
-    let playlistInfo = null
+
+    let linkType = null
 
     if (!url && !query) {
         return interaction.reply({content: 'Чё включать-то?', ephemeral: true})
@@ -48,7 +48,7 @@ export const execute = async interaction => {
     if (url) {
         /// возможно это стоит сделать частью плеера,
         /// если будет очередь, то он сам должен обрабатывать url
-        const linkType = ytu.checkLinkType(url)
+        linkType = ytu.checkLinkType(url)
         if (!linkType) {
             return interaction.reply({content: 'Некорректный url', ephemeral: true})
         }
@@ -56,7 +56,7 @@ export const execute = async interaction => {
             player.playTrack(url)
         } else {
             const listId = ytu.getPlaylistId(url)
-            playlistInfo = await yts({listId})
+            const playlistInfo = await yts({listId})
             const playlist = new Playlist(playlistInfo)
             if (linkType === 'videoFromPlaylist') {
                 playlist.setCurrent(ytu.getVideoId(url))
@@ -69,45 +69,23 @@ export const execute = async interaction => {
         if (!searchResult.videos.length) {
             return interaction.reply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
         }
-        videoInfo = searchResult.videos[0]
-        url = videoInfo.url
+        url = searchResult.videos[0]
         player.playTrack(url)
     }
 
-    if (!videoInfo) {
-        videoInfo = await yts({videoId: ytu.getVideoId(url)})
-    }
-
-    const embeds = [
-        new EmbedBuilder()
-            .setTitle(videoInfo.title)
-            .setColor('#FF0000')
-            .setImage(videoInfo.thumbnail)
-            .setURL(url)
-    ]
-
-    if (player.state === 'playing-playlist') {
-        embeds.push(
-            new EmbedBuilder()
-                .setTitle(playlistInfo.title)
-                .setDescription('Плейлист')
-                .setColor('#202225')
-                .setThumbnail(playlistInfo.thumbnail)
-                .setURL(playlistInfo.url)
-        )
-    }
+    const embedUrl = `[](${url})`
+    const secondaryEmbedUrl = linkType === 'videoFromPlaylist' ? `[](${ytu.getPlaylistUrl(url)})` : ''
 
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId('play-dora')
-                .setLabel('Включить дору-дуру')
+                .setLabel('Включите лучше дору')
                 .setStyle(ButtonStyle.Secondary)
         )
 
     await interaction.reply({
-        content: `Пользователь ${interaction.user.username} включил:`,
-        embeds,
+        content: `Пользователь ${interaction.user.username} включил:${embedUrl} ${secondaryEmbedUrl}`,
         components: [row]
     })
 
@@ -115,7 +93,7 @@ export const execute = async interaction => {
     message.awaitMessageComponent({componentType: ComponentType.Button})
         .then(interaction => {
             player.playTrack('https://youtu.be/WNadEfGnV04')
-            interaction.update({content: 'Ладно', embeds: [], components: []})
+            interaction.update({content: 'Ладно', components: []})
         })
         .catch(err => console.error(err))
 }
