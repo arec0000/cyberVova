@@ -80,7 +80,7 @@ class Player extends EventEmitter {
                 this.disconnect()
             }
         })
-        this._setState('playing-single-track')
+        this._setState('playing')
     }
 
     playPlaylist(playlist) {
@@ -101,7 +101,17 @@ class Player extends EventEmitter {
                 }
             }
         })
-        this._setState('playing-playlist')
+        this._setState('playing')
+    }
+
+    pause() {
+        this._audioPlayer.pause()
+        this._setState('paused')
+    }
+
+    unpause() {
+        this._audioPlayer.unpause()
+        this._setState('playing')
     }
 
     disconnect() {
