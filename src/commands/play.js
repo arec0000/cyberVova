@@ -30,15 +30,16 @@ export const execute = async interaction => {
         return interaction.reply({content: 'Чё включать-то?', ephemeral: true})
     }
 
-    if (!interaction.client.player) {
-        interaction.client.player = new Player()
+    if (!interaction.client.players[interaction.guildId]) {
+        interaction.client.players[interaction.guildId] = new Player()
+        console.log(`Создан новый плеер на сервере ${interaction.guild.name}`)
     }
 
-    const { player } = interaction.client
+    const player = interaction.client.players[interaction.guildId]
 
-    if (player.state === 'disconnected') {
+    // if (player.state === 'disconnected') {
         player.connectToChannel(voiceChannel)
-    }
+    // }
 
     if (url) {
         const response = await player.defineTypeAndPlay(url)

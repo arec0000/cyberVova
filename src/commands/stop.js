@@ -5,8 +5,9 @@ export const data = new SlashCommandBuilder()
     .setDescription('Выключить этот ужас')
 
 export const execute = async interaction => {
-    if (interaction.client.player) {
-        interaction.client.player.disconnect()
+    const player = interaction.client.players[interaction.guildId]
+    if (player) {
+        player.disconnect()
         interaction.reply(`${interaction.user.username} выключил воспроизведение`)
     } else {
         interaction.reply({content: 'Ничего не включено', ephemeral: true})
