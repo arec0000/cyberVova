@@ -8,6 +8,7 @@ import {
 import ytdl from 'ytdl-core'
 import yts from 'yt-search'
 import ytu from '../../helpers/yt-url.js'
+import Queue from './queue.js'
 import Playlist from './playlist.js'
 
 class Player extends EventEmitter {
@@ -17,6 +18,7 @@ class Player extends EventEmitter {
 
     _audioPlayer = null
     _voiceConnection = null
+    _queue = new Queue()
     _audioPlayerStateChangeHandler = () => {}
 
     currentTrack = {
@@ -28,6 +30,7 @@ class Player extends EventEmitter {
         return this._state
     }
 
+    ///
     get loop() {
         return this._loop
     }
@@ -39,6 +42,7 @@ class Player extends EventEmitter {
             throw new Error('Incorrect type for Player loop, it must be boolean')
         }
     }
+    ///зацикливать нужно не плеер, а очередь или плейлист
 
     connectToChannel(voiceChannel) {
         this._audioPlayer = createAudioPlayer()
@@ -49,9 +53,26 @@ class Player extends EventEmitter {
         })
         this._voiceConnection.subscribe(this._audioPlayer)
         this._voiceConnection.on(VoiceConnectionStatus.Disconnected, () => {
-            this.disconnect()
+            if (this._state === 'playing' || this._state === 'idle') {
+                this.disconnect()
+            }
         })
         this._setState('idle')
+    }
+
+    queue(action, payload) {
+        switch (action) {
+            case 'play':
+                if (this._queue.length) {
+                    this._queueLoop()
+                } else {
+                    return 'queueIsEmpty'
+                }
+                break
+            case 'push':
+                this._queue.push(payload)
+                break
+        }
     }
 
     async defineTypeAndPlay(url) {
@@ -60,7 +81,7 @@ class Player extends EventEmitter {
             return 'incorrectUrl'
         }
         if (linkType === 'video') {
-            this.playTrack(url)
+            return this.playTrack(url)
         } else {
             const listId = ytu.getPlaylistId(url)
             const playlistInfo = await yts({listId})
@@ -68,40 +89,46 @@ class Player extends EventEmitter {
             if (linkType === 'videoFromPlaylist') {
                 playlist.setCurrent(ytu.getVideoId(url))
             }
-            this.playPlaylist(playlist)
+            return this.playPlaylist(playlist)
         }
     }
 
     playTrack(url) {
-        this._playUrl(url)
-        this._setCurrentPlaylist(null)
-        this._updateAudioPlayerStateChangeHandler((oldState, newState) => {
-            if (newState.status === 'idle') {
-                this.disconnect()
-            }
+        return new Promise((resolve, reject) => {
+            this._playUrl(url)
+            this._setCurrentPlaylist(null)
+            this._updateAudioPlayerStateChangeHandler((oldState, newState) => {
+                if (newState.status === 'idle') {
+                    resolve()
+                    this._setState('idle')
+                }
+            })
+            this._setState('playing')
         })
-        this._setState('playing')
     }
 
     playPlaylist(playlist) {
-        this._playUrl(playlist.next())
-        this._setCurrentPlaylist(playlist)
-        this._updateAudioPlayerStateChangeHandler((oldState, newState) => {
-            if (newState.status === 'idle') {
-                const songUrl = playlist.next()
-                if (songUrl) {
-                    this._playUrl(songUrl)
-                } else {
-                    if (this._loop) {
-                        playlist.resetCurrent()
-                        this._playUrl(playlist.next())
+        return new Promise((resolve, reject) => {
+            this._playUrl(playlist.next())
+            this._setCurrentPlaylist(playlist)
+            this._updateAudioPlayerStateChangeHandler((oldState, newState) => {
+                if (newState.status === 'idle') {
+                    const songUrl = playlist.next()
+                    if (songUrl) {
+                        this._playUrl(songUrl)
                     } else {
-                        this.disconnect()
+                        if (this._loop) {
+                            playlist.resetCurrent()
+                            this._playUrl(playlist.next())
+                        } else {
+                            resolve()
+                            this._setState('idle')
+                        }
                     }
                 }
-            }
+            })
+            this._setState('playing')
         })
-        this._setState('playing')
     }
 
     pause() {
@@ -122,6 +149,16 @@ class Player extends EventEmitter {
         this._setCurrentTrack(null)
         this._setCurrentPlaylist(null)
         this._setState('disconnected')
+    }
+
+    _queueLoop = () => {
+        const url = this._queue.next()
+        if (url) {
+            this.defineTypeAndPlay(url).then(this._queueLoop)
+        } else {
+            //проверка на цикл
+            this.disconnect()
+        }
     }
 
     _playUrl(url) {

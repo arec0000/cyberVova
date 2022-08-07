@@ -25,13 +25,6 @@ export const execute = async interaction => {
 
     await interaction.deferReply()
 
-    const url = interaction.options.getString('url')
-    const query = interaction.options.getString('search')
-
-    if (!url && !query) {
-        return interaction.reply({content: 'Чё включать-то?', ephemeral: true})
-    }
-
     if (!interaction.client.players[interaction.guildId]) {
         interaction.client.players[interaction.guildId] = new Player()
         console.log(`Создан новый плеер на сервере ${interaction.guild.name}`)
@@ -41,6 +34,18 @@ export const execute = async interaction => {
 
     if (player.state === 'disconnected') {
         player.connectToChannel(voiceChannel)
+    }
+
+    const url = interaction.options.getString('url')
+    const query = interaction.options.getString('search')
+
+    if (!url && !query) {
+        const response = player.queue('play')
+        if (response === 'queueIsEmpty') {
+            player.disconnect()
+            return interaction.editReply({content: 'Чё включать-то?', ephemeral: true})
+        }
+        return interaction.editReply({content: 'Проигрывание треков из очереди', ephemeral: true})
     }
 
     if (url) {

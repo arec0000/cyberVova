@@ -9,7 +9,17 @@ export const execute = async interaction => {
             await command.execute(interaction)
         } catch (e) {
             console.error(e)
-            await interaction.reply({content: 'Ошибка при выполнении команды', ephemeral: true})
+            if (interaction.deferred) {
+                await interaction.editReply({
+                    content: 'Ошибка при выполнении команды',
+                    ephemeral: true
+                })
+            } else {
+                await interaction.reply({
+                    content: 'Ошибка при выполнении команды',
+                    ephemeral: true
+                })
+            }
         }
     }
 }

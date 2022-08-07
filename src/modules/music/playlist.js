@@ -44,7 +44,7 @@ class Playlist {
     }
 
     next() {
-        if (this.current < this.videos.length - 1) {
+        if (this.current < this.videos.length) {
             return ytu.urlFromId({
                 videoId: this.videos[this.current++].id,
                 playlistId: this.youtube ? this.youtube.id : null
