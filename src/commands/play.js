@@ -23,6 +23,8 @@ export const execute = async interaction => {
         return interaction.reply({content: 'Подключитесь к голосовому каналу', ephemeral: true})
     }
 
+    await interaction.deferReply()
+
     const url = interaction.options.getString('url')
     const query = interaction.options.getString('search')
 
@@ -37,19 +39,19 @@ export const execute = async interaction => {
 
     const player = interaction.client.players[interaction.guildId]
 
-    // if (player.state === 'disconnected') {
+    if (player.state === 'disconnected') {
         player.connectToChannel(voiceChannel)
-    // }
+    }
 
     if (url) {
         const response = await player.defineTypeAndPlay(url)
         if (response === 'incorrectUrl') {
-            return interaction.reply({content: 'Некорректный url', ephemeral: true})
+            return interaction.editReply({content: 'Некорректный url', ephemeral: true})
         }
     } else {
         const searchResult = await yts(query)
         if (!searchResult.videos.length) {
-            return interaction.reply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
+            return interaction.editReply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
         }
         player.playTrack(searchResult.videos[0].url)
     }
@@ -67,16 +69,26 @@ export const execute = async interaction => {
                 .setStyle(ButtonStyle.Danger)
         )
 
-    await interaction.reply({
+    await interaction.editReply({
         content: `Пользователь ${interaction.user.username} включил:${trackEmbedUrl} ${playlistEmbedUrl}`,
         components: [row]
     })
 
     const message = await interaction.fetchReply()
-    message.awaitMessageComponent({componentType: ComponentType.Button})
-        .then(interaction => {
+
+    const collector = message.createMessageComponentCollector({componentType: ComponentType.Button})
+
+    collector.on('collect', i => {
+        if (i.customId === 'play-dora') {
             player.playTrack('https://youtu.be/WNadEfGnV04')
-            interaction.update({content: 'Ладно', components: []})
-        })
-        .catch(err => console.error(err))
+            i.update({content: 'Ладно', components: []})
+            collector.stop()
+        }
+        console.log(`Нажата кнопка ${i.customId}`)
+    })
+
+    collector.on('end', collected => {
+        console.log('Сборщик остановлен')
+    })
+
 }
