@@ -6,8 +6,8 @@ import {
     ComponentType
 } from 'discord.js'
 import yts from 'yt-search'
-import getLinkInfo from '../helpers/getLinkInfo.js'
 import Player from '../modules/music/player.js'
+import QueueItem from '../modules/music/queueItem.js'
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -50,18 +50,20 @@ export const execute = async interaction => {
     }
 
     if (url) {
-        const urlInfo = await getLinkInfo(url)
-        if (urlInfo === 'incorrectUrl') {
+        const queueItem = new QueueItem(url)
+        if (queueItem.type === 'incorrectUrl') {
             return interaction.editReply({content: 'Некорректный url', ephemeral: true})
         }
-        player.queue('pushAfterCurrent', urlInfo)
+        await queueItem.fetchTitle()
+        player.queue('pushAfterCurrent', queueItem)
     } else {
         const searchResult = await yts(query)
         if (!searchResult.videos.length) {
             return interaction.editReply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
         }
-        const urlInfo = await getLinkInfo(searchResult.videos[0].url)
-        player.queue('pushAfterCurrent', urlInfo)
+        const queueItem = new QueueItem(searchResult.videos[0].url)
+        await queueItem.fetchTitle()
+        player.queue('pushAfterCurrent', queueItem)
     }
 
     const trackEmbedUrl = `[](${player.currentTrack.url})`
