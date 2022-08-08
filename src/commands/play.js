@@ -6,11 +6,12 @@ import {
     ComponentType
 } from 'discord.js'
 import yts from 'yt-search'
+import getLinkInfo from '../helpers/getLinkInfo.js'
 import Player from '../modules/music/player.js'
 
 export const data = new SlashCommandBuilder()
     .setName('play')
-    .setDescription('Проиграть музыку в текущем голосовом канале')
+    .setDescription('Добавить в очередь после текущего трека и проиграть')
     .addStringOption(option =>
         option.setName('url').setDescription('Youtube видео или плейлист'))
     .addStringOption(option =>
@@ -45,20 +46,22 @@ export const execute = async interaction => {
             player.disconnect()
             return interaction.editReply({content: 'Чё включать-то?', ephemeral: true})
         }
-        return interaction.editReply({content: 'Проигрывание треков из очереди', ephemeral: true})
+        return interaction.editReply({content: 'Проигрывание треков из очереди'})
     }
 
     if (url) {
-        const response = await player.defineTypeAndPlay(url)
-        if (response === 'incorrectUrl') {
+        const urlInfo = await getLinkInfo(url)
+        if (urlInfo === 'incorrectUrl') {
             return interaction.editReply({content: 'Некорректный url', ephemeral: true})
         }
+        player.queue('pushAfterCurrent', urlInfo)
     } else {
         const searchResult = await yts(query)
         if (!searchResult.videos.length) {
             return interaction.editReply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
         }
-        player.playTrack(searchResult.videos[0].url)
+        const urlInfo = await getLinkInfo(searchResult.videos[0].url)
+        player.queue('pushAfterCurrent', urlInfo)
     }
 
     const trackEmbedUrl = `[](${player.currentTrack.url})`

@@ -8,6 +8,7 @@ import {
 import ytdl from 'ytdl-core'
 import yts from 'yt-search'
 import ytu from '../../helpers/yt-url.js'
+import getLinkInfo from '../../helpers/getLinkInfo.js'
 import Queue from './queue.js'
 import Playlist from './playlist.js'
 
@@ -55,7 +56,8 @@ class Player extends EventEmitter {
                 }
                 break
             case 'pushAfterCurrent':
-
+                this._queue.pushAfterCurrent(payload)
+                this._queueLoop()
                 break
             case 'push':
                 this._queue.push(payload)

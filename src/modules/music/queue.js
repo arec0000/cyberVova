@@ -8,16 +8,12 @@ class Queue {
         return this.list.length
     }
 
-    push(tracksInfo) {
-        this.list = [...this.list, ...tracksInfo]
+    push(urlsInfo) {
+        this.list = [...this.list, ...urlsInfo]
     }
 
-    pushAfterCurrent(trackObj) {
-        if (this.list.length) {
-            this.list.splice(this.current + 1, 0, trackObj)
-        } else {
-            this.list.push(trackObj)
-        }
+    pushAfterCurrent(urlInfo) {
+        this.list.splice(this.current, 0, urlInfo)
     }
 
     resetCurrent() {
