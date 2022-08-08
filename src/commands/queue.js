@@ -3,6 +3,16 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js'
 import getLinkInfo from '../helpers/getLinkInfo.js'
 import Player from '../modules/music/player.js'
 
+const makeQueueList = (urlsInfo, ops) =>
+    urlsInfo.map((urlInfo, i) => {
+        const index = ops?.ordered ? `${i + 1}. ` : ''
+        const next = ops?.current === i ? ' - следующий' : ''
+        return {
+            name: `${index}${urlInfo.type === 'video' ? 'трек' : 'плейлист'}${next}`,
+            value: `[${urlInfo.title}](${urlInfo.url})`
+        }
+    })
+
 export const data = new SlashCommandBuilder()
     .setName('queue')
     .setDescription('Взаимодействовать с очередью треков')
@@ -12,6 +22,10 @@ export const data = new SlashCommandBuilder()
             .setDescription('Добавить треки/плейлисты в очередь (через пробел)')
             .addStringOption(option =>
                 option.setName('urls').setDescription('Youtube видео или плейлисты').setRequired(true)))
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('info')
+            .setDescription('Список треков/плейлистов'))
 
 export const execute = async interaction => {
 
@@ -20,6 +34,8 @@ export const execute = async interaction => {
     if (!interaction.client.players[interaction.guildId]) {
         interaction.client.players[interaction.guildId] = new Player()
     }
+
+    const player = interaction.client.players[interaction.guildId]
 
     if (interaction.options.getSubcommand() === 'add') {
 
@@ -34,18 +50,24 @@ export const execute = async interaction => {
                 urlsInfo.push(await getLinkInfo(url))
             }
 
-            interaction.client.players[interaction.guildId].queue('push', urlsInfo)
+            player.queue('push', urlsInfo)
 
             const embed = new EmbedBuilder()
                 .setTitle(`${interaction.user.username} добавил в очередь`)
                 .setColor('#202225')
-                .addFields(...urlsInfo.map(urlInfo =>
-                    ({
-                        name: urlInfo.type === 'video' ? 'трек' : 'плейлист',
-                        value: `[${urlInfo.title}](${urlInfo.url})`})
-                ))
+                .addFields(...makeQueueList(urlsInfo))
 
             interaction.editReply({embeds: [embed], ephemeral: true})
         }
+
+    } else if (interaction.options.getSubcommand() === 'info') {
+        const queueInfo = player.queue('get')
+        const embed = new EmbedBuilder()
+                .setColor('#202225')
+                .addFields(...makeQueueList(queueInfo, {
+                    ordered: true,
+                    current: player.queue('current')
+                }))
+        interaction.editReply({embeds: [embed], ephemeral: true})
     }
 }

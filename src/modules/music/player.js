@@ -55,13 +55,17 @@ class Player extends EventEmitter {
                     return 'queueIsEmpty'
                 }
                 break
+            case 'push':
+                this._queue.push(payload)
+                break
             case 'pushAfterCurrent':
                 this._queue.pushAfterCurrent(payload)
                 this._queueLoop()
                 break
-            case 'push':
-                this._queue.push(payload)
-                break
+            case 'get':
+                return this._queue.getList()
+            case 'current':
+                return this._queue.current
         }
     }
 

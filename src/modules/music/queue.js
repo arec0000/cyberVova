@@ -1,19 +1,23 @@
 class Queue {
 
-    list = []
+    _list = []
     current = 0
     loop = false
 
     get length() {
-        return this.list.length
+        return this._list.length
+    }
+
+    getList() {
+        return this._list.slice()
     }
 
     push(urlsInfo) {
-        this.list = [...this.list, ...urlsInfo]
+        this._list = [...this._list, ...urlsInfo]
     }
 
     pushAfterCurrent(urlInfo) {
-        this.list.splice(this.current, 0, urlInfo)
+        this._list.splice(this.current, 0, urlInfo)
     }
 
     resetCurrent() {
@@ -21,7 +25,7 @@ class Queue {
     }
 
     next() {
-        return this.current < this.list.length ? this.list[this.current++].url : null
+        return this.current < this._list.length ? this._list[this.current++].url : null
     }
 
 }
