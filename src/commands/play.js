@@ -98,7 +98,7 @@ export const execute = async interaction => {
     })
 
     collector.on('end', collected => {
-        console.log('Сборщик остановлен')
+        console.log('Сборщик команды play остановлен')
     })
 
 }

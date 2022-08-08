@@ -54,6 +54,8 @@ class Player extends EventEmitter {
                     return 'queueIsEmpty'
                 }
                 break
+            case 'get':
+                    return this._queue.getList()
             case 'push':
                 this._queue.push(payload)
                 break
@@ -61,8 +63,12 @@ class Player extends EventEmitter {
                 this._queue.pushAfterCurrent(payload)
                 this._queueLoop()
                 break
-            case 'get':
-                return this._queue.getList()
+            case 'delete':
+                const task = this._queue.delete(payload)
+                if (this._state === 'playing' && payload.includes(this._queue.current)) {
+                    task.then(() => this._queueLoop())
+                }
+                return task
             case 'current':
                 return this._queue.current
         }
@@ -139,8 +145,8 @@ class Player extends EventEmitter {
         this._setState('disconnected')
     }
 
-    _queueLoop = () => {
-        const url = this._queue.next()
+    _queueLoop = async () => {
+        const url = await this._queue.next()
         if (url) {
             this.defineTypeAndPlay(url).then(this._queueLoop)
         } else {
