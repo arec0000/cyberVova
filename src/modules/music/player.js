@@ -14,7 +14,6 @@ import Playlist from './playlist.js'
 class Player extends EventEmitter {
 
     _state = 'disconnected'
-    _loop = false
 
     _audioPlayer = null
     _voiceConnection = null
@@ -29,20 +28,6 @@ class Player extends EventEmitter {
     get state() {
         return this._state
     }
-
-    ///
-    get loop() {
-        return this._loop
-    }
-
-    set loop(bool) {
-        if (typeof bool === 'boolean') {
-            this._loop = bool
-        } else {
-            throw new Error('Incorrect type for Player loop, it must be boolean')
-        }
-    }
-    ///зацикливать нужно не плеер, а очередь или плейлист
 
     connectToChannel(voiceChannel) {
         this._audioPlayer = createAudioPlayer()
@@ -69,6 +54,9 @@ class Player extends EventEmitter {
                     return 'queueIsEmpty'
                 }
                 break
+            case 'pushAfterCurrent':
+
+                break
             case 'push':
                 this._queue.push(payload)
                 break
@@ -83,12 +71,7 @@ class Player extends EventEmitter {
         if (linkType === 'video') {
             return this.playTrack(url)
         } else {
-            const listId = ytu.getPlaylistId(url)
-            const playlistInfo = await yts({listId})
-            const playlist = new Playlist('youtube', playlistInfo)
-            if (linkType === 'videoFromPlaylist') {
-                playlist.setCurrent(ytu.getVideoId(url))
-            }
+            const playlist = await this._ytPlalistFromUrl(url, linkType)
             return this.playPlaylist(playlist)
         }
     }
@@ -117,7 +100,7 @@ class Player extends EventEmitter {
                     if (songUrl) {
                         this._playUrl(songUrl)
                     } else {
-                        if (this._loop) {
+                        if (playlist.loop) {
                             playlist.resetCurrent()
                             this._playUrl(playlist.next())
                         } else {
@@ -156,8 +139,12 @@ class Player extends EventEmitter {
         if (url) {
             this.defineTypeAndPlay(url).then(this._queueLoop)
         } else {
-            //проверка на цикл
-            this.disconnect()
+            if (this._queue.loop) {
+                this._queue.resetCurrent()
+                this._queueLoop()
+            } else {
+                this.disconnect()
+            }
         }
     }
 
@@ -174,6 +161,16 @@ class Player extends EventEmitter {
        const audio = createAudioResource(buffer)
        this._audioPlayer.play(audio)
        this._setCurrentTrack(url)
+    }
+
+    async _ytPlalistFromUrl(url, linkType) {
+        const listId = ytu.getPlaylistId(url)
+        const playlistInfo = await yts({listId})
+        const playlist = new Playlist('youtube', playlistInfo)
+        if (linkType === 'videoFromPlaylist') {
+            playlist.setCurrent(ytu.getVideoId(url))
+        }
+        return playlist
     }
 
     _setCurrentTrack(url) {

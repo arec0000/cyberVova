@@ -29,6 +29,7 @@ class Playlist {
     }
 
     current = 0
+    loop = false
 
     setCurrent(videoId) {
         const index = this.videos.findIndex(({id}) => id === videoId)

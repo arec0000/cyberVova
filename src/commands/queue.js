@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js'
 
-import yts from 'yt-search'
-import ytu from '../helpers/yt-url.js'
+import getLinkInfo from '../helpers/getLinkInfo.js'
 import Player from '../modules/music/player.js'
 
 export const data = new SlashCommandBuilder()
@@ -22,7 +21,7 @@ export const execute = async interaction => {
         interaction.client.players[interaction.guildId] = new Player()
     }
 
-    if (interaction.options.getSubcommand() === 'push') {
+    if (interaction.options.getSubcommand() === 'add') {
 
         const urlsStr = interaction.options.getString('urls')
 
@@ -30,26 +29,9 @@ export const execute = async interaction => {
             const urls = urlsStr.split(' ').filter(item => item.trim())
 
             const urlsInfo = []
+
             for (const url of urls) {
-                const type = ytu.checkLinkType(url)
-                if (!type) {
-                    return interaction.editReply({
-                        content: '```diff\n- Ссылка некорректна\n```' + url,
-                        ephemeral: true
-                    })
-                }
-                try {
-                    const {title} = type === 'video'
-                        ? await yts({videoId: ytu.getVideoId(url)})
-                        : await yts({listId: ytu.getPlaylistId(url)})
-                    urlsInfo.push({
-                        title,
-                        url,
-                        type
-                    })
-                } catch (err) {
-                    throw err
-                }
+                urlsInfo.push(await getLinkInfo(url))
             }
 
             interaction.client.players[interaction.guildId].queue('push', urlsInfo)
@@ -59,7 +41,7 @@ export const execute = async interaction => {
                 .setColor('#202225')
                 .addFields(...urlsInfo.map(urlInfo =>
                     ({
-                        name: urlInfo.type === 'video' ? 'видео' : 'плейлист',
+                        name: urlInfo.type === 'video' ? 'трек' : 'плейлист',
                         value: `[${urlInfo.title}](${urlInfo.url})`})
                 ))
 

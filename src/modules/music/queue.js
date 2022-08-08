@@ -2,6 +2,7 @@ class Queue {
 
     list = []
     current = 0
+    loop = false
 
     get length() {
         return this.list.length
@@ -17,6 +18,10 @@ class Queue {
         } else {
             this.list.push(trackObj)
         }
+    }
+
+    resetCurrent() {
+        this.current = 0
     }
 
     next() {
