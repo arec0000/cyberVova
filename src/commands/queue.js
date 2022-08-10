@@ -27,6 +27,10 @@ export const data = new SlashCommandBuilder()
         subcommand
             .setName('delete')
             .setDescription('Удалить часть плейлиста'))
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('clear')
+            .setDescription('Очистить очередь'))
 
 export const execute = async interaction => {
 
@@ -172,5 +176,15 @@ export const execute = async interaction => {
         collector.on('end', collected => {
             console.log('Сборщик команды queue delete остановлен')
         })
+
+    } else if (interaction.options.getSubcommand() === 'clear') {
+
+        const queueItems = player.queue('get')
+        const indexes = queueItems.map((item, i) => i)
+
+        await interaction.editReply({content: 'Элементы удаляются', ephemeral: true})
+        await player.queue('delete', indexes)
+        interaction.editReply({content: 'Элементы удалены', ephemeral: true})
+
     }
 }
