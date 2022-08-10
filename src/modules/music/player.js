@@ -64,8 +64,9 @@ class Player extends EventEmitter {
                 this._queueLoop()
                 break
             case 'delete':
+                const current = this._queue.current
                 const task = this._queue.delete(payload)
-                if (this._state === 'playing' && payload.includes(this._queue.current)) {
+                if (this._state === 'playing' && payload.includes(current - 1)) {
                     task.then(() => this._queueLoop())
                 }
                 return task
