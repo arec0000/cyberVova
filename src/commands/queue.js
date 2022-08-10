@@ -10,6 +10,31 @@ import Player from '../modules/music/player.js'
 import QueueItem from '../modules/music/queueItem.js'
 import trimTo80 from '../helpers/trimTo80.js'
 
+const makeQueueSelect = (customId, queueItems, ops) => {
+
+        const selectOptions = queueItems.map((queueItem, i) => {
+            const pretty = queueItem.getPretty()
+            const isNext = i === ops.current ? ' - следующий' : ''
+            return {
+                label: `${i + 1}. ${trimTo80(queueItem.title)}`,
+                description: `${pretty.type}${isNext}`,
+                value: `${i + 1}. ${queueItem.title}`
+            }
+        })
+
+        const selectMenu = new SelectMenuBuilder()
+            .setCustomId(customId)
+            .setPlaceholder('Выберите треки/плейлисты')
+            .setOptions(selectOptions)
+
+        if (ops.multiselect) {
+            selectMenu.setMinValues(1).setMaxValues(selectOptions.length)
+        }
+
+        return new ActionRowBuilder().addComponents(selectMenu)
+
+}
+
 export const data = new SlashCommandBuilder()
     .setName('queue')
     .setDescription('Взаимодействовать с очередью треков')
@@ -23,6 +48,10 @@ export const data = new SlashCommandBuilder()
             .setDescription('Добавить треки/плейлисты в очередь (через пробел)')
             .addStringOption(option =>
                 option.setName('urls').setDescription('Youtube видео или плейлисты').setRequired(true)))
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('to')
+            .setDescription('Переместиться в часть очереди'))
     .addSubcommand(subcommand =>
         subcommand
             .setName('delete')
@@ -105,6 +134,39 @@ export const execute = async interaction => {
             interaction.editReply({embeds: [embed], ephemeral: true})
         }
 
+    } else if (interaction.options.getSubcommand() === 'to') {
+
+        const queueItems = player.queue('get')
+        const current = player.queue('current')
+
+        if (!queueItems.length) {
+            return interaction.editReply({content: 'В очереди ничего нет', ephemeral: true})
+        }
+
+        const selectRow = makeQueueSelect('queue-to-select', queueItems, {current})
+
+        interaction.editReply({components: [selectRow], ephemeral: true})
+
+        const message = await interaction.fetchReply()
+        const collector = message.createMessageComponentCollector({time: 900000})
+
+        collector.on('collect', async i => {
+            if (i.customId === 'queue-to-select') {
+                const selectedIndex = +i.values[0].replace(/\..+/, '') - 1
+                player.queue('to', selectedIndex)
+                i.update({
+                    content: 'Указатель очереди перемещён на выбранный элемент',
+                    components: [],
+                    ephemeral: true
+                })
+                collector.stop()
+            }
+        })
+
+        collector.on('end', collected => {
+            console.log('Сборщик команды queue to остановлен')
+        })
+
     } else if (interaction.options.getSubcommand() === 'delete') {
 
         const queueItems = player.queue('get')
@@ -114,28 +176,14 @@ export const execute = async interaction => {
             return interaction.editReply({content: 'В очереди ничего нет', ephemeral: true})
         }
 
-        const selectOptions = queueItems.map((queueItem, i) => {
-            const pretty = queueItem.getPretty()
-            const isNext = i === current ? ' - следующий' : ''
-            return {
-                label: `${i + 1}. ${trimTo80(queueItem.title)}`,
-                description: `${pretty.type}${isNext}`,
-                value: `${i + 1}. ${queueItem.title}`
-            }
-        })
-
-        const selectRow = new ActionRowBuilder()
-            .addComponents(
-                new SelectMenuBuilder()
-                    .setCustomId('queue-delete-select')
-                    .setPlaceholder('Выберите треки/плейлисты')
-                    .setMinValues(1)
-                    .setMaxValues(selectOptions.length)
-                    .setOptions(selectOptions)
-            )
+        const selectRow = makeQueueSelect('queue-delete-select', queueItems, {current, multiselect: true})
 
         const buttonRow = new ActionRowBuilder()
             .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('queue-back-btn')
+                    .setLabel('Назад')
+                    .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId('queue-delete-btn')
                     .setLabel('Удалить')
@@ -151,7 +199,7 @@ export const execute = async interaction => {
 
         collector.on('collect', async i => {
             if (i.customId === 'queue-delete-select') {
-                selectedIndexes = i.values.map(value => +value.replace(/\D+/, '') - 1)
+                selectedIndexes = i.values.map(value => +value.replace(/\..+/, '') - 1)
                 const embedFields = selectedIndexes.map(i => {
                     const pretty = queueItems[i].getPretty()
                     const isNext = (i) === current ? ' - следующий' : ''
@@ -165,6 +213,8 @@ export const execute = async interaction => {
                     .setColor('#202225')
                     .addFields(...embedFields)
                 i.update({embeds: [embed], components: [buttonRow], ephemeral: true})
+            } else if (i.customId === 'queue-back-btn') {
+                i.update({embeds: [], components: [selectRow], ephemeral: true})
             } else if (i.customId === 'queue-delete-btn') {
                 await i.update({content: 'Элементы удаляются', embeds: [], components: [], ephemeral: true})
                 await player.queue('delete', selectedIndexes)

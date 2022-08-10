@@ -37,6 +37,10 @@ class Queue {
         }))
     }
 
+    setCurrent(i) {
+        this.current = i
+    }
+
     resetCurrent() {
         this.current = 0
     }
