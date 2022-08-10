@@ -5,13 +5,16 @@ export const data = new SlashCommandBuilder()
     .setDescription('Инициализировать бота')
 
 export const execute = async interaction => {
-    const channels = await interaction.guild.channels.fetch()
-    if (!channels.has('1005524559497277511')) {
+    const channelsMap = await interaction.guild.channels.fetch()
+    const channels = Array.from(channelsMap.values())
+    if (!channels.some(channel => channel.name === 'musichub')) {
         const channel = await interaction.guild.channels.create({
-            name: 'musicHub',
+            name: 'musichub',
             reason: 'channel for interacting with the songs'
         })
         console.log(`Создан музыкальный канал: ${channel.id}`)
-        //записывать id в базу, чтобы потом проверять
+        interaction.reply({content: 'Создан музыкальный канал', ephemeral: true})
+    } else {
+        interaction.reply({content: 'Бот уже проинециализирован', ephemeral: true})
     }
 }
