@@ -78,6 +78,9 @@ class Player extends EventEmitter {
                 return task
             case 'current':
                 return this._queue.current
+            case 'loop':
+                this._queue.loop = payload
+                break
         }
     }
 

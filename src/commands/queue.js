@@ -60,6 +60,12 @@ export const data = new SlashCommandBuilder()
         subcommand
             .setName('clear')
             .setDescription('Очистить очередь'))
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('loop')
+            .setDescription('Зациклить очередь')
+            .addBooleanOption(option =>
+                option.setName('value').setDescription('Значение').setRequired(true)))
 
 export const execute = async interaction => {
 
@@ -236,5 +242,21 @@ export const execute = async interaction => {
         await player.queue('delete', indexes)
         interaction.editReply({content: 'Элементы удалены', ephemeral: true})
 
+    } else if (interaction.options.getSubcommand() === 'loop') {
+        const isLoop = interaction.options.getBoolean('value')
+
+        player.queue('loop', isLoop)
+
+        if (isLoop) {
+            interaction.editReply({
+                content: 'Очередь постоянно будет перезапускаться',
+                ephemeral: true
+            })
+        } else {
+            interaction.editReply({
+                content: 'Проигрывание прекратится, когда очередь подойдёт к концу',
+                ephemeral: true
+            })
+        }
     }
 }
