@@ -4,6 +4,7 @@ import to from './to.js'
 import deleteQueueItems from './delete.js'
 import clear from './clear.js'
 import loop from './loop.js'
+import shuffle from './shuffle.js'
 
 const queueSubcommands = {
     info: info,
@@ -11,7 +12,8 @@ const queueSubcommands = {
     to: to,
     delete: deleteQueueItems,
     clear: clear,
-    loop: loop
+    loop: loop,
+    shuffle: shuffle,
 }
 
 const queueDispatcher = (subcommand, {interaction, player}) => {

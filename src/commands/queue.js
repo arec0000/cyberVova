@@ -33,6 +33,10 @@ export const data = new SlashCommandBuilder()
             .setDescription('Зациклить очередь')
             .addBooleanOption(option =>
                 option.setName('value').setDescription('Значение').setRequired(true)))
+    .addSubcommand(subcommand =>
+        subcommand
+            .setName('shuffle')
+            .setDescription('Перемешать очередь'))
 
 export const execute = async interaction => {
 

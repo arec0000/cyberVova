@@ -87,6 +87,12 @@ class Player extends EventEmitter {
             case 'loop':
                 this._queue.loop = payload
                 break
+            case 'shuffle':
+                this._queue.shuffle()
+                if (this._state === 'playing') {
+                    this._queueLoop()
+                }
+                break
         }
     }
 

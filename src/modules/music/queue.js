@@ -1,3 +1,5 @@
+import shuffle from '../../helpers/shuffle.js'
+
 class Queue {
 
     _list = []
@@ -43,6 +45,11 @@ class Queue {
 
     resetCurrent() {
         this.current = 0
+    }
+
+    shuffle() {
+        this._list = shuffle(this._list)
+        this.setCurrent(0)
     }
 
     next() {
