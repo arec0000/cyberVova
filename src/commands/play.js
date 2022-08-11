@@ -1,10 +1,4 @@
-import {
-    SlashCommandBuilder,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    ComponentType
-} from 'discord.js'
+import { SlashCommandBuilder } from 'discord.js'
 import yts from 'yt-search'
 import Player from '../modules/music/player.js'
 import QueueItem from '../modules/music/queueItem.js'
@@ -27,7 +21,7 @@ export const execute = async interaction => {
     await interaction.deferReply()
 
     if (!interaction.client.players[interaction.guildId]) {
-        interaction.client.players[interaction.guildId] = new Player()
+        interaction.client.players[interaction.guildId] = new Player(interaction.guild)
         console.log(`Создан новый плеер на сервере ${interaction.guild.name}`)
     }
 
@@ -66,39 +60,8 @@ export const execute = async interaction => {
         player.queue('pushAfterCurrent', queueItem)
     }
 
-    const trackEmbedUrl = `[](${player.currentTrack.url})`
+    const type = player.currentTrack.playlist ? 'Плейлист' : 'Трек'
 
-    const playlistEmbedUrl = player.currentTrack.playlist?.type === 'youtube'
-        ? `[](${player.currentTrack.playlist.youtube.url})` : ''
-
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('play-dora')
-                .setLabel('Включите лучше дору')
-                .setStyle(ButtonStyle.Danger)
-        )
-
-    await interaction.editReply({
-        content: `Пользователь ${interaction.user.username} включил:${trackEmbedUrl} ${playlistEmbedUrl}`,
-        components: [row]
-    })
-
-    const message = await interaction.fetchReply()
-
-    const collector = message.createMessageComponentCollector({componentType: ComponentType.Button})
-
-    collector.on('collect', i => {
-        if (i.customId === 'play-dora') {
-            player.playTrack('https://youtu.be/WNadEfGnV04')
-            i.update({content: 'Ладно', components: []})
-            collector.stop()
-        }
-        console.log(`Нажата кнопка ${i.customId}`)
-    })
-
-    collector.on('end', collected => {
-        console.log('Сборщик команды play остановлен')
-    })
+    interaction.editReply({content: `${type} добавлен в очередь и включен`, ephemeral: true})
 
 }

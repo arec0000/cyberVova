@@ -10,8 +10,14 @@ import yts from 'yt-search'
 import ytu from '../../helpers/yt-url.js'
 import Queue from './queue.js'
 import Playlist from './playlist.js'
+import MessageSender from './messageSender.js'
 
 class Player extends EventEmitter {
+
+    constructor(guild) {
+        super()
+        this._messageSender = new MessageSender(guild)
+    }
 
     _state = 'disconnected'
 
@@ -99,8 +105,8 @@ class Player extends EventEmitter {
 
     playTrack(url) {
         return new Promise((resolve, reject) => {
-            this._playUrl(url)
             this._setCurrentPlaylist(null)
+            this._announceAndPlay(url)
             this._updateAudioPlayerStateChangeHandler((oldState, newState) => {
                 if (newState.status === 'idle') {
                     resolve()
@@ -113,17 +119,17 @@ class Player extends EventEmitter {
 
     playPlaylist(playlist) {
         return new Promise((resolve, reject) => {
-            this._playUrl(playlist.next())
             this._setCurrentPlaylist(playlist)
+            this._announceAndPlay(playlist.next())
             this._updateAudioPlayerStateChangeHandler((oldState, newState) => {
                 if (newState.status === 'idle') {
                     const songUrl = playlist.next()
                     if (songUrl) {
-                        this._playUrl(songUrl)
+                        this._announceAndPlay(songUrl)
                     } else {
                         if (playlist.loop) {
                             playlist.resetCurrent()
-                            this._playUrl(playlist.next())
+                            this._announceAndPlay(playlist.next())
                         } else {
                             resolve()
                             this._setState('idle')
@@ -169,6 +175,11 @@ class Player extends EventEmitter {
         }
     }
 
+    _announceAndPlay(url) {
+        this._playUrl(url)
+        this._announceNewTrack(url)
+    }
+
     _playUrl(url) {
         const buffer = ytdl(url, {
             filter: 'audioonly',
@@ -182,6 +193,11 @@ class Player extends EventEmitter {
        const audio = createAudioResource(buffer)
        this._audioPlayer.play(audio)
        this._setCurrentTrack(url)
+    }
+
+    _announceNewTrack(url) {
+        this.emit('newTrack')
+        this._messageSender.newTrack(url, this.currentTrack.playlist, this)
     }
 
     async _ytPlalistFromUrl(url, linkType) {

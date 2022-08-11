@@ -39,7 +39,7 @@ export const execute = async interaction => {
     await interaction.deferReply({ephemeral: true})
 
     if (!interaction.client.players[interaction.guildId]) {
-        interaction.client.players[interaction.guildId] = new Player()
+        interaction.client.players[interaction.guildId] = new Player(interaction.guild)
     }
 
     const player = interaction.client.players[interaction.guildId]
