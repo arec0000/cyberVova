@@ -1,11 +1,15 @@
 import {
     ActionRowBuilder,
+    EmbedBuilder,
     ButtonBuilder,
     ButtonStyle,
     ComponentType
 } from 'discord.js'
 
 class MessageSender {
+
+    _isBlocked = false
+    _blockingTask = null
 
     constructor(guild) {
         this._block((async () => {
@@ -15,12 +19,30 @@ class MessageSender {
         })())
     }
 
-    _isBlocked = false
-    _blockingTask = null
-
     async newTrack(url, playlist, player) {
 
-        const playlistUrl = playlist?.type === 'youtube' ? `\nПлейлист\n${playlist.youtube.url}` : ''
+        const embeds = [new EmbedBuilder()
+            .setColor('#FF0000')
+            .setURL(url)]
+
+        if (!playlist) {
+
+            const {title, thumbnail} = player.queue('startedItem')
+            embeds[0].setTitle(title).setImage(thumbnail)
+
+        } else if (playlist.type === 'youtube') {
+
+            const {title, thumbnail} = playlist.getStartedTrack()
+
+            embeds[0].setTitle(title).setImage(thumbnail)
+
+            embeds.push(new EmbedBuilder().setTitle(playlist.title)
+                .setColor('#202225')
+                .setURL(playlist.youtube.url)
+                .setThumbnail(playlist.youtube.thumbnail)
+                .setDescription('Плейлист')
+            )
+        }
 
         const row = new ActionRowBuilder()
             .addComponents(
@@ -30,10 +52,7 @@ class MessageSender {
                     .setStyle(ButtonStyle.Danger)
             )
 
-        const message = await this.send({
-            content: `Трек\n${url}${playlistUrl}`,
-            components: [row]
-        })
+        const message = await this.send({embeds, components: [row]})
 
         const collector = message.createMessageComponentCollector({componentType: ComponentType.Button})
 
@@ -58,6 +77,7 @@ class MessageSender {
     }
 
     send(message) {
+        if (!this.channel) return
         if (!this._isBlocked) {
             return this.channel.send(message)
         } else {

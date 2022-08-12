@@ -13,12 +13,13 @@ class QueueItem {
         }
     }
 
-    async fetchTitle() {
+    async fetchInfo() {
         try {
-            const {title} = this.type === 'video'
+            const {title, thumbnail} = this.type === 'video'
                 ? await yts({videoId: ytu.getVideoId(this.url)})
                 : await yts({listId: ytu.getPlaylistId(this.url)})
             this.title = title
+            this.thumbnail = thumbnail
             return title
         } catch (err) {
             throw err

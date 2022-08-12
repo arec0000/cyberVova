@@ -12,6 +12,10 @@ class Queue {
         return this._list.length
     }
 
+    getStartedItem() {
+        return {...this._list[this.current - 1]}
+    }
+
     getList() {
         return this._list.slice()
     }

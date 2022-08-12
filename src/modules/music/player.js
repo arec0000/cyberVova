@@ -14,11 +14,6 @@ import MessageSender from './messageSender.js'
 
 class Player extends EventEmitter {
 
-    constructor(guild) {
-        super()
-        this._messageSender = new MessageSender(guild)
-    }
-
     _state = 'disconnected'
 
     _audioPlayer = null
@@ -29,6 +24,11 @@ class Player extends EventEmitter {
     currentTrack = {
         url: null,
         playlist: null
+    }
+
+    constructor(guild) {
+        super()
+        this.messageSender = new MessageSender(guild)
     }
 
     get state() {
@@ -84,6 +84,8 @@ class Player extends EventEmitter {
                 return task
             case 'current':
                 return this._queue.current
+            case 'startedItem':
+                return this._queue.getStartedItem()
             case 'loop':
                 this._queue.loop = payload
                 break
@@ -203,7 +205,7 @@ class Player extends EventEmitter {
 
     _announceNewTrack(url) {
         this.emit('newTrack')
-        this._messageSender.newTrack(url, this.currentTrack.playlist, this)
+        this.messageSender.newTrack(url, this.currentTrack.playlist, this)
     }
 
     async _ytPlalistFromUrl(url, linkType) {

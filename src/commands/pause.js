@@ -8,7 +8,8 @@ export const execute = async interaction => {
     const player = interaction.client.players[interaction.guildId]
     if (player?.state === 'playing') {
         player.pause()
-        interaction.reply(`${interaction.user.username} поставил на паузу`)
+        interaction.reply({content: 'Поставлено на паузу', ephemeral: true})
+        player.messageSender.send(`${interaction.user.username} поставил на паузу`)
     } else {
         interaction.reply({content: 'Ничего не включено', ephemeral: true})
     }

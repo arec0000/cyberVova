@@ -18,7 +18,7 @@ export const execute = async interaction => {
         return interaction.reply({content: 'Подключитесь к голосовому каналу', ephemeral: true})
     }
 
-    await interaction.deferReply()
+    await interaction.deferReply({ephemeral: true})
 
     if (!interaction.client.players[interaction.guildId]) {
         interaction.client.players[interaction.guildId] = new Player(interaction.guild)
@@ -40,15 +40,20 @@ export const execute = async interaction => {
             player.disconnect()
             return interaction.editReply({content: 'Чё включать-то?', ephemeral: true})
         }
-        return interaction.editReply({content: 'Проигрывание треков из очереди'})
+        return interaction.editReply({content: 'Проигрывание треков из очереди', ephemeral: true})
     }
+
+    player.once('newTrack', () => {
+        const type = player.currentTrack.playlist ? 'Плейлист' : 'Трек'
+        interaction.editReply({content: `${type} добавлен в очередь и включен`, ephemeral: true})
+    })
 
     if (url) {
         const queueItem = new QueueItem(url)
         if (queueItem.type === 'incorrectUrl') {
             return interaction.editReply({content: 'Некорректный url', ephemeral: true})
         }
-        await queueItem.fetchTitle()
+        await queueItem.fetchInfo()
         player.queue('pushAfterCurrent', queueItem)
     } else {
         const searchResult = await yts(query)
@@ -56,12 +61,8 @@ export const execute = async interaction => {
             return interaction.editReply({content: 'Удивительно, но ничего не найдено', ephemeral: true})
         }
         const queueItem = new QueueItem(searchResult.videos[0].url)
-        await queueItem.fetchTitle()
+        await queueItem.fetchInfo()
         player.queue('pushAfterCurrent', queueItem)
     }
-
-    const type = player.currentTrack.playlist ? 'Плейлист' : 'Трек'
-
-    interaction.editReply({content: `${type} добавлен в очередь и включен`, ephemeral: true})
 
 }

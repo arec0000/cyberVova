@@ -52,6 +52,7 @@ const deleteQueueItems = async (interaction, player) => {
             await i.update({content: 'Элементы удаляются', embeds: [], components: [], ephemeral: true})
             await player.queue('delete', selectedIndexes)
             i.editReply({content: 'Элементы удалены', ephemeral: true})
+            player.messageSender.send(`${interaction.user.username} удалил часть очереди`)
             collector.stop()
         }
     })

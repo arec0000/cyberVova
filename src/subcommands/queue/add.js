@@ -17,7 +17,7 @@ const add = async (interaction, player) => {
                     ephemeral: true
                 })
             }
-            await queueItem.fetchTitle()
+            await queueItem.fetchInfo()
             queueItems.push(queueItem)
         }
 
@@ -31,12 +31,18 @@ const add = async (interaction, player) => {
             }
         })
 
-        const embed = new EmbedBuilder()
+        const privateEmbed = new EmbedBuilder()
+            .setTitle('Добавлено в очередь')
+            .setColor('#202225')
+            .addFields(...embedFields)
+
+        const publicEmbed = new EmbedBuilder()
             .setTitle(`${interaction.user.username} добавил в очередь`)
             .setColor('#202225')
             .addFields(...embedFields)
 
-        interaction.editReply({embeds: [embed], ephemeral: true})
+        interaction.editReply({embeds: [privateEmbed], ephemeral: true})
+        player.messageSender.send({publicEmbed})
     }
 }
 

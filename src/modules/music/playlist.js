@@ -15,21 +15,31 @@ class Playlist {
         if (type === 'youtube' && playlistInfo.listId && playlistInfo.url) {
             this.youtube = {
                 id: playlistInfo.listId,
-                url: playlistInfo.url
+                url: playlistInfo.url,
+                thumbnail: playlistInfo.thumbnail
             }
         } else {
             throw new Error('Id and url is required for youtube playlist')
         }
 
-        this.videos = playlistInfo.videos.map(({title, videoId}) => ({
+        this.videos = playlistInfo.videos.map(({title, videoId, thumbnail}) => ({
             title,
-            id: videoId
+            id: videoId,
+            thumbnail
         }))
 
     }
 
     current = 0
     loop = false
+
+    getStartedTrack() {
+        if (this.current > 0) {
+            return {...this.videos[this.current - 1]}
+        } else {
+            return null
+        }
+    }
 
     setCurrent(videoId) {
         const index = this.videos.findIndex(({id}) => id === videoId)

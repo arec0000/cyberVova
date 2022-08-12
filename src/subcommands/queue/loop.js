@@ -8,11 +8,13 @@ const loop = (interaction, player) => {
             content: 'Очередь постоянно будет перезапускаться',
             ephemeral: true
         })
+        player.messageSender.send(`${interaction.user.username} зациклил очередь`)
     } else {
         interaction.editReply({
             content: 'Проигрывание прекратится, когда очередь подойдёт к концу',
             ephemeral: true
         })
+        player.messageSender.send(`${interaction.user.username} отключид зацикливание очереди`)
     }
 }
 

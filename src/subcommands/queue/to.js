@@ -24,6 +24,7 @@ const to = async (interaction, player) => {
                 components: [],
                 ephemeral: true
             })
+            player.messageSender.send(`${interaction.user.username} переключил очередь на другой трек`)
             collector.stop()
         }
     })
