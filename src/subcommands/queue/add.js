@@ -42,7 +42,7 @@ const add = async (interaction, player) => {
             .addFields(...embedFields)
 
         interaction.editReply({embeds: [privateEmbed], ephemeral: true})
-        player.messageSender.send({publicEmbed})
+        player.messageSender.send({embeds: [publicEmbed]})
     }
 }
 

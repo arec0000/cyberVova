@@ -44,13 +44,23 @@ class MessageSender {
             )
         }
 
+        const back = new ButtonBuilder()
+            .setCustomId('back')
+            .setLabel('←')
+            .setStyle(ButtonStyle.Secondary)
+
+        const dora = new ButtonBuilder()
+            .setCustomId('play-dora')
+            .setLabel('Включите лучше дору')
+            .setStyle(ButtonStyle.Danger)
+
+        const next = new ButtonBuilder()
+            .setCustomId('next')
+            .setLabel('→')
+            .setStyle(ButtonStyle.Secondary)
+
         const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('play-dora')
-                    .setLabel('Включите лучше дору')
-                    .setStyle(ButtonStyle.Danger)
-            )
+            .addComponents(back, next, dora)
 
         const message = await this.send({embeds, components: [row]})
 
@@ -61,6 +71,10 @@ class MessageSender {
                 player._playUrl('https://youtu.be/WNadEfGnV04')
                 i.update({content: 'Ладно', components: []})
                 collector.stop()
+            } else if (i.customId === 'next') {
+                player.next()
+            } else if (i.customId === 'back') {
+                player.back()
             }
             console.log(`Нажата кнопка ${i.customId}`)
         })

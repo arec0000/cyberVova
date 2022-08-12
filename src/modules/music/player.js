@@ -17,6 +17,7 @@ class Player extends EventEmitter {
     _state = 'disconnected'
 
     _audioPlayer = null
+    _audioStream = null
     _voiceConnection = null
     _queue = new Queue()
     _audioPlayerStateChangeHandler = () => {}
@@ -149,6 +150,35 @@ class Player extends EventEmitter {
         })
     }
 
+    next() {
+        if (this._state !== 'playing') return
+        if (!this.currentTrack.playlist) {
+            this._queueLoop()
+        } else {
+            this._audioPlayerStateChangeHandler('', {status: 'idle'})
+        }
+    }
+
+    back() {
+        if (this._state !== 'playing') return
+        const playlist = this.currentTrack.playlist
+        if (!playlist) {
+            const index = this._queue.current - 2
+            this._queue.current = index >= 0 ? index : this._queue.length - 1
+            this._queueLoop()
+        } else {
+            const playlistIndex = playlist.current - 2
+            if (playlistIndex >= 0) {
+                playlist.current = playlistIndex
+                this._audioPlayerStateChangeHandler('', {status: 'idle'})
+            } else {
+                const queueIndex = this._queue.current - 2
+                this._queue.current = queueIndex >= 0 ? queueIndex : this._queue.length - 1
+                this._queueLoop()
+            }
+        }
+    }
+
     pause() {
         this._audioPlayer.pause()
         this._setState('paused')
@@ -199,7 +229,7 @@ class Player extends EventEmitter {
             quality: 'lowestaudio'
        })
        const audio = createAudioResource(buffer)
-       this._audioPlayer.play(audio)
+       this._audioStream = this._audioPlayer.play(audio)
        this._setCurrentTrack(url)
     }
 
