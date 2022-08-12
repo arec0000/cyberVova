@@ -5,7 +5,7 @@ import {
     createAudioResource,
     VoiceConnectionStatus
 } from '@discordjs/voice'
-import ytdl from 'ytdl-core'
+import { stream } from 'play-dl'
 import yts from 'yt-search'
 import ytu from '../../helpers/yt-url.js'
 import Queue from './queue.js'
@@ -218,19 +218,11 @@ class Player extends EventEmitter {
         this._announceNewTrack(url)
     }
 
-    _playUrl(url) {
-        const buffer = ytdl(url, {
-            filter: 'audioonly',
-            fmt: 'mp3',
-            highWaterMark: 1 << 62,
-            liveBuffer: 1 << 62,
-            dlChunkSize: 0,
-            bitrate: 128,
-            quality: 'lowestaudio'
-       })
-       const audio = createAudioResource(buffer)
-       this._audioStream = this._audioPlayer.play(audio)
-       this._setCurrentTrack(url)
+    async _playUrl(url) {
+        const buffer = await stream(url)
+        const audio = createAudioResource(buffer.stream, {inputType: buffer.type})
+        this._audioStream = this._audioPlayer.play(audio)
+        this._setCurrentTrack(url)
     }
 
     _announceNewTrack(url) {
