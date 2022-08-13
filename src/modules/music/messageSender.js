@@ -44,6 +44,64 @@ class MessageSender {
             )
         }
 
+        const rows = this._createRows()
+
+        const components = []
+
+        if (!playlist) {
+            components.push(rows.singleTrack)
+        } else {
+            if (playlist.loop) {
+                components.push(rows.stopLoop)
+            } else {
+                components.push(rows.setLoop)
+            }
+        }
+
+        const message = await this.send({embeds, components})
+
+        const collector = message.createMessageComponentCollector({componentType: ComponentType.Button})
+
+        collector.on('collect', i => {
+            if (i.customId === 'play-dora') {
+                player._playUrl('https://youtu.be/WNadEfGnV04')
+                i.update({content: 'Ладно', embeds: [], components: []})
+                collector.stop()
+            } else if (i.customId === 'next') {
+                player.next()
+            } else if (i.customId === 'back') {
+                player.back()
+            } else if (i.customId === 'loop') {
+                playlist.loop = true
+                i.update({components: [rows.stopLoop]})
+            } else if (i.customId === 'stop-loop') {
+                playlist.loop = false
+                i.update({components: [rows.setLoop]})
+            }
+            console.log(`Нажата кнопка ${i.customId}`)
+        })
+
+        collector.on('end', collected => {
+            console.log('Сборщик команды сообщения о песне остановлен')
+        })
+
+        player.once('newTrack', () => {
+            message.edit({components: []})
+            collector.stop()
+        })
+
+    }
+
+    send(message) {
+        if (!this.channel) return
+        if (!this._isBlocked) {
+            return this.channel.send(message)
+        } else {
+            return this._blockingTask.then(() => this.channel.send(message))
+        }
+    }
+
+    _createRows() {
         const back = new ButtonBuilder()
             .setCustomId('back')
             .setLabel('←')
@@ -69,52 +127,13 @@ class MessageSender {
             .setLabel('Включите лучше дору')
             .setStyle(ButtonStyle.Danger)
 
-        const loopRow = new ActionRowBuilder()
-            .addComponents(back, next, loop, dora)
-
-        const stopLoopRow = new ActionRowBuilder()
-            .addComponents(back, next, stopLoop, dora)
-
-        const message = await this.send({embeds, components: [playlist.loop ? stopLoopRow : loopRow]})
-
-        const collector = message.createMessageComponentCollector({componentType: ComponentType.Button})
-
-        collector.on('collect', i => {
-            if (i.customId === 'play-dora') {
-                player._playUrl('https://youtu.be/WNadEfGnV04')
-                i.update({content: 'Ладно', embeds: [], components: []})
-                collector.stop()
-            } else if (i.customId === 'next') {
-                player.next()
-            } else if (i.customId === 'back') {
-                player.back()
-            } else if (i.customId === 'loop') {
-                playlist.loop = true
-                i.update({components: [stopLoopRow]})
-            } else if (i.customId === 'stop-loop') {
-                playlist.loop = false
-                i.update({components: [loopRow]})
-            }
-            console.log(`Нажата кнопка ${i.customId}`)
-        })
-
-        collector.on('end', collected => {
-            console.log('Сборщик команды сообщения о песне остановлен')
-        })
-
-        player.once('newTrack', () => {
-            message.edit({components: []})
-            collector.stop()
-        })
-
-    }
-
-    send(message) {
-        if (!this.channel) return
-        if (!this._isBlocked) {
-            return this.channel.send(message)
-        } else {
-            return this._blockingTask.then(() => this.channel.send(message))
+        return {
+            singleTrack: new ActionRowBuilder()
+                .addComponents(back, next, dora),
+            setLoop: new ActionRowBuilder()
+                .addComponents(back, next, loop, dora),
+            stopLoop: new ActionRowBuilder()
+                .addComponents(back, next, stopLoop, dora)
         }
     }
 
