@@ -49,32 +49,51 @@ class MessageSender {
             .setLabel('←')
             .setStyle(ButtonStyle.Secondary)
 
-        const dora = new ButtonBuilder()
-            .setCustomId('play-dora')
-            .setLabel('Включите лучше дору')
-            .setStyle(ButtonStyle.Danger)
-
         const next = new ButtonBuilder()
             .setCustomId('next')
             .setLabel('→')
             .setStyle(ButtonStyle.Secondary)
 
-        const row = new ActionRowBuilder()
-            .addComponents(back, next, dora)
+        const loop = new ButtonBuilder()
+            .setCustomId('loop')
+            .setLabel('Не зациклен')
+            .setStyle(ButtonStyle.Secondary)
 
-        const message = await this.send({embeds, components: [row]})
+        const stopLoop = new ButtonBuilder()
+            .setCustomId('stop-loop')
+            .setLabel('Зациклен')
+            .setStyle(ButtonStyle.Secondary)
+
+        const dora = new ButtonBuilder()
+            .setCustomId('play-dora')
+            .setLabel('Включите лучше дору')
+            .setStyle(ButtonStyle.Danger)
+
+        const loopRow = new ActionRowBuilder()
+            .addComponents(back, next, loop, dora)
+
+        const stopLoopRow = new ActionRowBuilder()
+            .addComponents(back, next, stopLoop, dora)
+
+        const message = await this.send({embeds, components: [playlist.loop ? stopLoopRow : loopRow]})
 
         const collector = message.createMessageComponentCollector({componentType: ComponentType.Button})
 
         collector.on('collect', i => {
             if (i.customId === 'play-dora') {
                 player._playUrl('https://youtu.be/WNadEfGnV04')
-                i.update({content: 'Ладно', components: []})
+                i.update({content: 'Ладно', embeds: [], components: []})
                 collector.stop()
             } else if (i.customId === 'next') {
                 player.next()
             } else if (i.customId === 'back') {
                 player.back()
+            } else if (i.customId === 'loop') {
+                playlist.loop = true
+                i.update({components: [stopLoopRow]})
+            } else if (i.customId === 'stop-loop') {
+                playlist.loop = false
+                i.update({components: [loopRow]})
             }
             console.log(`Нажата кнопка ${i.customId}`)
         })
