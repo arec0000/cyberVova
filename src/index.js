@@ -14,7 +14,7 @@ const client = new Client({
 })
 
 createCommandsMap(client)
-    .then(deployCommands)
+    .then(commands => deployCommands(client, commands))
 addEventHandlers(client)
 
 client.login(config.token)
