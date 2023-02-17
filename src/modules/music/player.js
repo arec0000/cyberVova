@@ -126,6 +126,17 @@ class Player extends EventEmitter {
         })
     }
 
+    playTrackOutOfQueue(url) {
+        this._playUrl(url)
+        this._updateAudioPlayerStateChangeHandler((oldState, newState) => {
+            if (newState.status === 'idle') {
+                this._queueLoop()
+                this._setState('idle')
+            }
+        })
+        this._setState('playing')
+    }
+
     playPlaylist(playlist) {
         return new Promise((resolve, reject) => {
             this._setCurrentPlaylist(playlist)

@@ -11,7 +11,7 @@ class MessageSender {
     _isBlocked = false
     _blockingTask = null
 
-    constructor(guild) {
+    constructor(guild) { // это лучше переписать, на отдельный метод инициализации
         this._block((async () => {
             const channelsMap = await guild.channels.fetch()
             const channels = Array.from(channelsMap.values())
@@ -64,7 +64,16 @@ class MessageSender {
 
         collector.on('collect', i => {
             if (i.customId === 'play-dora') {
-                player._playUrl('https://youtu.be/WNadEfGnV04')
+                /// это нужно переписать, в принципе стоит сделать создание кастомных кнопок
+                if (player.state === 'disconnected') {
+                    const voiceChannel = i.member.voice.channel
+                    if (!voiceChannel) {
+                        return i.reply({content: 'Подключитесь к голосовому каналу', ephemeral: true})
+                    }
+                    player.connectToChannel(voiceChannel)
+                }
+                ///
+                player.playTrackOutOfQueue('https://youtu.be/WNadEfGnV04')
                 i.update({content: 'Ладно', embeds: [], components: []})
                 collector.stop()
             } else if (i.customId === 'next') {
